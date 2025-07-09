@@ -42,9 +42,9 @@ bot.on(message("document"), async (ctx) => {
         const command = `../make_call.sh ${number}`;
         exec(command, (err) => {
           if (err) {
-            console.error(`Ошибка при отправке файла: ${err.message}`);
+            console.error(`Error: ${err.message}`);
           } else {
-            console.log(`Вызов для ${number} отправлен.`);
+            console.log(`Call on ${number} have been made.`);
           }
         });
       }
