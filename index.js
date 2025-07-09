@@ -39,7 +39,7 @@ bot.on(message("document"), async (ctx) => {
 
     numbers.forEach((number) => {
       if (number) {
-        const command = `../make_call.sh ${number}`;
+        const command = `./make_call.sh ${number}`;
         exec(command, (err) => {
           if (err) {
             console.error(`Error: ${err.message}`);
