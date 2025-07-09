@@ -1,15 +1,18 @@
 import { spawn } from "child_process";
 import path from "path";
 
+// Получаем номер из аргументов
 const phoneNumber = process.argv[2];
 if (!phoneNumber) {
   console.error("❌ Укажи номер: node call.js 89818309017");
   process.exit(1);
 }
 
+// Указываем путь к файлам
 const audioFile = path.resolve("./music.wav");
 const recFile = path.resolve("./dialog.wav");
 
+// Формируем аргументы для pjsua
 const args = [
   "--id",
   "sip:42776@rdx.narayana.im",
@@ -24,37 +27,38 @@ const args = [
   "--play-file",
   audioFile,
   "--auto-play",
-  "--null-audio",
+  "--null-audio", // если хочешь подавить звук с микрофона
   "--local-port",
   "0",
   "--no-tcp",
   "--duration",
-  "30",
+  "30", // длительность вызова (сек)
   "--rec-file",
   recFile,
   `sip:${phoneNumber}@rdx.narayana.im`,
 ];
 
+// Запускаем процесс звонка
 const callProcess = spawn("pjsua", args);
 
 let connected = false;
 let dtmfKeys = [];
 
+// Чтение stdout
 callProcess.stdout.on("data", (data) => {
   const output = data.toString();
-  console.log(output);
+  process.stdout.write(output); // выведем как есть
 
   if (output.includes("state changed to CONNECTED")) {
     connected = true;
     console.log("✅ Абонент ответил");
   }
 
-  if (output.includes("Incoming DTMF")) {
-    const match = output.match(/Incoming DTMF on call \d+: (\d)/);
-    if (match) {
-      dtmfKeys.push(match[1]);
-      console.log(`🔢 Нажата цифра: ${match[1]}`);
-    }
+  const match = output.match(/Incoming DTMF on call \d+: (\d)/);
+  if (match) {
+    const key = match[1];
+    dtmfKeys.push(key);
+    console.log(`🔢 Нажата цифра: ${key}`);
   }
 
   if (
@@ -65,13 +69,16 @@ callProcess.stdout.on("data", (data) => {
   }
 });
 
+// Чтение stderr
 callProcess.stderr.on("data", (data) => {
-  console.error("STDERR:", data.toString());
+  console.error("❗ STDERR:", data.toString());
 });
 
+// Обработка завершения процесса
 callProcess.on("close", (code) => {
   console.log("\n📞 Вызов завершён");
   console.log("📌 Статус:", connected ? "Отвечено" : "Не дозвонились");
+
   if (dtmfKeys.length > 0) {
     console.log("🎹 Нажатые клавиши:", dtmfKeys.join(", "));
   } else {
