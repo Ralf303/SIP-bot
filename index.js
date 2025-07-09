@@ -1,7 +1,7 @@
 import { Telegraf } from "telegraf";
 import fs from "fs-extra";
 import { join } from "path";
-import { exec } from "child_process";
+import { exec, execSync } from "child_process";
 import { config } from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -37,18 +37,10 @@ bot.on(message("document"), async (ctx) => {
 
     await ctx.reply("Call start.");
 
-    numbers.forEach((number) => {
-      if (number) {
-        const command = `./make_call.sh ${number}`;
-        exec(command, (err) => {
-          if (err) {
-            console.error(`Error: ${err.message}`);
-          } else {
-            console.log(`Call on ${number} have been made.`);
-          }
-        });
-      }
-    });
+    for (const number of numbers) {
+      execSync(`./make_call.sh ${number}`);
+      await new Promise((r) => setTimeout(r, 3000));
+    }
   } catch (error) {
     console.error(error);
     ctx.reply("Err when call.");
