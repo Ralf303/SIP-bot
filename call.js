@@ -49,8 +49,8 @@ callProcess.stdout.on("data", (data) => {
     console.log("✅ Абонент ответил");
   }
 
-  if (output.includes("Incoming DTMF digit")) {
-    const match = output.match(/Incoming DTMF digit '(\d)'/);
+  if (output.includes("Incoming DTMF")) {
+    const match = output.match(/Incoming DTMF on call \d+: (\d)/);
     if (match) {
       dtmfKeys.push(match[1]);
       console.log(`🔢 Нажата цифра: ${match[1]}`);
@@ -58,7 +58,7 @@ callProcess.stdout.on("data", (data) => {
   }
 
   if (
-    output.includes("Call disconnected") ||
+    output.includes("Call 0 is DISCONNECTED") ||
     output.includes("state changed to DISCONNECTED")
   ) {
     console.log("📴 Абонент положил трубку или не дозвонились");
