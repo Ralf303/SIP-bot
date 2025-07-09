@@ -1,18 +1,15 @@
 import { spawn } from "child_process";
 import path from "path";
 
-// Получаем номер из аргументов
 const phoneNumber = process.argv[2];
 if (!phoneNumber) {
   console.error("❌ Укажи номер: node call.js 89818309017");
   process.exit(1);
 }
 
-// Указываем путь к файлам
 const audioFile = path.resolve("./music.wav");
 const recFile = path.resolve("./dialog.wav");
 
-// Формируем аргументы для pjsua
 const args = [
   "--id",
   "sip:42776@rdx.narayana.im",
@@ -27,38 +24,40 @@ const args = [
   "--play-file",
   audioFile,
   "--auto-play",
-  "--null-audio", // если хочешь подавить звук с микрофона
+  "--null-audio",
   "--local-port",
   "0",
   "--no-tcp",
   "--duration",
-  "30", // длительность вызова (сек)
+  "30",
   "--rec-file",
   recFile,
+  "--log-level",
+  "0", // 🧹 Отключаем лишние системные логи от pjsua
   `sip:${phoneNumber}@rdx.narayana.im`,
 ];
 
-// Запускаем процесс звонка
 const callProcess = spawn("pjsua", args);
 
 let connected = false;
 let dtmfKeys = [];
 
-// Чтение stdout
 callProcess.stdout.on("data", (data) => {
   const output = data.toString();
-  process.stdout.write(output); // выведем как есть
 
+  // 🔍 Только события, которые нас интересуют
   if (output.includes("state changed to CONNECTED")) {
     connected = true;
     console.log("✅ Абонент ответил");
+    return;
   }
 
-  const match = output.match(/Incoming DTMF on call \d+: (\d)/);
-  if (match) {
-    const key = match[1];
+  const dtmfMatch = output.match(/Incoming DTMF on call \d+: (\d)/);
+  if (dtmfMatch) {
+    const key = dtmfMatch[1];
     dtmfKeys.push(key);
     console.log(`🔢 Нажата цифра: ${key}`);
+    return;
   }
 
   if (
@@ -66,16 +65,24 @@ callProcess.stdout.on("data", (data) => {
     output.includes("state changed to DISCONNECTED")
   ) {
     console.log("📴 Абонент положил трубку или не дозвонились");
+    return;
   }
 });
 
-// Чтение stderr
 callProcess.stderr.on("data", (data) => {
-  console.error("❗ STDERR:", data.toString());
+  const error = data.toString();
+  // ⚠️ Только ошибки pjsua — можно скрыть или оставить по желанию
+  if (
+    !error.includes("V:") && // убираем подробности уровня verbose
+    !error.includes("DBG") &&
+    !error.includes("SIP") &&
+    !error.includes("INVITE")
+  ) {
+    console.error("❗", error.trim());
+  }
 });
 
-// Обработка завершения процесса
-callProcess.on("close", (code) => {
+callProcess.on("close", () => {
   console.log("\n📞 Вызов завершён");
   console.log("📌 Статус:", connected ? "Отвечено" : "Не дозвонились");
 
